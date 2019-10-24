@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+
+############################################################
+#														   #
+#Basic script for NOC to run on Juniper devices.
+#Intended to help you save
+#some time. Netmiko establishes SSH connection.
+############################################################
+
+from netmiko import ConnectHandler
+import getpass
+import os
+
+#All you need to know is the IP address of the Juniper device.
+
+print("Hola! Connections do require some time to create, dontcha know, give it a sec!")
+
+ip_address = raw_input("Enter the device IP address: ")
+response = os.system('ping -c 3 ' + ip_address)
+if response == 0:
+	username = raw_input("Enter your username: ")
+	password = getpass.getpass()
+else:
+	print("Device is down, or IP address does not exist!")
+	quit("Exiting the script, please try again.")
+
+#Value for "device type" is netmiko-specific.
+#It has specific values for other vendor platforms as well.
+
+juniper = {
+	'device_type' : 'juniper_junos',
+	'host' : ip_address,
+	'username' : username,
+	'password' : password,
+	}
+
+net_connect = ConnectHandler(**juniper)
+
+net_connect.find_prompt()
+
+output_int_desc = net_connect.send_command("show interface descriptions")
+output_sys_upt = net_connect.send_command("show system uptime")
+output_alarms = net_connect.send_command("show chassis alarms")
+output_ospf_neigh = net_connect.send_command('show ospf neighbor')
+
+#That's where stuff gets printed out to the screen - just copy
+#and paste in your ticket!
+
+print(net_connect.find_prompt())
+print(output_int_desc)
+print(output_sys_upt)
+print(output_alarms)
+print(output_ospf_neigh)
+
+nni_port = raw_input('Please enter exact port you want to check light levels on: ')
+
+check_nni_port = net_connect.send_command("show interfaces diagnostics optics " + nni_port)
+
+print(check_nni_port)
+
+#Gotta disconnect that SSH connection.
+
+net_connect.disconnect()
